@@ -1,5 +1,5 @@
 
-# Convergence of chained equation algorithms
+## Convergence of chained equation algorithms
 
 rm(list=ls())
 
@@ -84,7 +84,6 @@ for (i in 1:20){
     data_mar <- data_orig
     z_miss_mar_px <- 0.5 + 2 * X1 - 0.7 * X2 + 0.4 * x3 - 0.8 * x4 + 0.1 * x5 + rnorm(n, 0, 3)
     mis_mar_px <- z_miss_mar_px < quantile(z_miss_mar_px, p_miss)
-    data_mar$x[mis_mar_px] <- NA
     
     #für alle Variablen außer x5 durchführen
     z_miss_mar_px1 <- 0.3 + 2.5 * X - 0.5 * X2 + 0.6 * x3 - 0.9 * x4 + 0.2 * x5 + rnorm(n, 0, 3)
@@ -115,6 +114,7 @@ for (i in 1:20){
     #Da die Daten auf Zufallszügen basieren, ist hier kein richtiges Sampling notwendig
     #10% der Daten als CC
     #Gleiche große Anzahl an Missings in den Variablen, nicht realisisch aber ist es problematisch?
+    #Funktioniert das so?! Ansonsten wie in Zeilen 102-106 anpassen
     is.na(data_my$x[1:180]) <- T
     is.na(data_my$X1[181:360]) <- T
     is.na(data_my$X2[361:540]) <- T
