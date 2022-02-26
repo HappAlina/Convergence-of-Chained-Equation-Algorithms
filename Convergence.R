@@ -27,17 +27,17 @@ R_var_80 = list(len=100)
 for (i in 1:20){
   
   n <- 1000
-  number_variables <- 3
-  mu <- runif(number_variables, -5, 10)
-  v <- rWishart(3, 3, matrix(0.5, number_variables, number_variables)) # not sure what to do here
+  number_variables <- 6
+  mu <- runif(number_variables, -5, 10) 
+  v <- runif(number_variables, 0, 15)
   
-  x <- rnorm(n, mu[1], v[1])
-  X1 <- 18 - 0.7 * x + rnorm(n, mu[2], v[2])
-  X2 <- 5 + 0.5 * x + 0.7 * X1 + rnorm(n, mu[3], v[3])
-  x3 <- 1 - 0.3 * x - 1 * x1 + 0.2 * x2 + rnorm(n, mu[4], v[4])
-  x4 <-13 + 0.9 * x + 0.4 * x1 - 0.6 * x2 - 0.5 * x3 + rnorm(n, mu[5], v[5])
-  x5 <- 6 + 0.1 * x - 1.3 * x1 + 0.75 * x2 - 0.2 * x3 + 0.8 * x4 + rnorm(n, mu[6], v[6])
-  data_orig <- data.frame(x, X1, X2, x3, x4, x5)
+  y <- rnorm(n, mu[1], v[1])
+  x1 <- 18 - 0.7 * y + rnorm(n, mu[2], v[2])
+  x2 <- 5 + 0.5 * y + 0.7 * x1 + rnorm(n, mu[3], v[3])
+  x3 <- 1 - 0.3 * y - 1 * x1 + 0.2 * x2 + rnorm(n, mu[4], v[4])
+  x4 <-13 + 0.9 * y + 0.4 * x1 - 0.6 * x2 - 0.5 * x3 + rnorm(n, mu[5], v[5])
+  x5 <- 6 + 0.1 * y - 1.3 * x1 + 0.75 * x2 - 0.2 * x3 + 0.8 * x4 + rnorm(n, mu[6], v[6])
+  data_orig <- data.frame(y, x1, x2, x3, x4, x5)
   
   ## original values
   (means_orig <- apply(data_orig, 2, FUN = mean))
@@ -58,11 +58,11 @@ for (i in 1:20){
     mcar_values4 <- sample(nrow(data_orig), round(percent_miss * n))
     mcar_values5 <- sample(nrow(data_orig), round(percent_miss * n))
     
-    is.na(data_mcar$x[mcar_values1]) <- T
-    is.na(data_mcar$X1[mcar_values2]) <- T
-    is.na(data_mcar$X2[mcar_values3]) <- T
-    is.na(data_mcar$X3[mcar_values4]) <- T
-    is.na(data_mcar$X4[mcar_values5]) <- T
+    is.na(data_mcar$y[mcar_values1]) <- T
+    is.na(data_mcar$x1[mcar_values2]) <- T
+    is.na(data_mcar$x2[mcar_values3]) <- T
+    is.na(data_mcar$x3[mcar_values4]) <- T
+    is.na(data_mcar$x4[mcar_values5]) <- T
     #x5 bleibt vollständig
     ## graphics of missing pattern
     
@@ -82,32 +82,32 @@ for (i in 1:20){
     
     #remove the lowest quantile
     data_mar <- data_orig
-    z_miss_mar_px <- 0.5 + 2 * X1 - 0.7 * X2 + 0.4 * x3 - 0.8 * x4 + 0.1 * x5 + rnorm(n, 0, 3)
+    z_miss_mar_px <- 0.5 + 2 * x1 - 0.7 * x2 + 0.4 * x3 - 0.8 * x4 + 0.1 * x5 + rnorm(n, 0, 3)
     mis_mar_px <- z_miss_mar_px < quantile(z_miss_mar_px, p_miss)
     
     #für alle Variablen außer x5 durchführen
-    z_miss_mar_px1 <- 0.3 + 2.5 * X - 0.5 * X2 + 0.6 * x3 - 0.9 * x4 + 0.2 * x5 + rnorm(n, 0, 3)
+    z_miss_mar_px1 <- 0.3 + 2.5 * y - 0.5 * x2 + 0.6 * x3 - 0.9 * x4 + 0.2 * x5 + rnorm(n, 0, 3)
     mis_mar_px1 <- z_miss_mar_px1 < quantile(z_miss_mar_px1, p_miss)
 
-    z_miss_mar_px2 <- 1.5 + 1.2 * X - 0.5 * X1 + 0.7 * x3 - 0.2 * x4 + 0.7 * x5 + rnorm(n, 0, 3)
+    z_miss_mar_px2 <- 1.5 + 1.2 * y - 0.5 * x1 + 0.7 * x3 - 0.2 * x4 + 0.7 * x5 + rnorm(n, 0, 3)
     mis_mar_px2 <- z_miss_mar_px2 < quantile(z_miss_mar_px2, p_miss)
     
-    z_miss_mar_px3 <- 0.7 + 0.2 * X - 0.8 * X1 + 0.3 * x2 + 0.1 * x4 + 0.5 * x5 + rnorm(n, 0, 3)
+    z_miss_mar_px3 <- 0.7 + 0.2 * y - 0.8 * x1 + 0.3 * x2 + 0.1 * x4 + 0.5 * x5 + rnorm(n, 0, 3)
     mis_mar_px3 <- z_miss_mar_px3 < quantile(z_miss_mar_px3, p_miss)
     
-    z_miss_mar_px4 <- 0.4 + 0.9 * X + 0.6 * X1 + 0.7 * x2 - 0.9 * x3 + 0.3 * x5 + rnorm(n, 0, 3)
+    z_miss_mar_px4 <- 0.4 + 0.9 * y + 0.6 * x1 + 0.7 * x2 - 0.9 * x3 + 0.3 * x5 + rnorm(n, 0, 3)
     mis_mar_px4 <- z_miss_mar_px4 < quantile(z_miss_mar_px4, p_miss)
     
     #NA setzen der Beobachtungen
-    data_mar$x[mis_mar_px] <- NA
+    data_mar$y[mis_mar_px] <- NA
     data_mar$x1[mis_mar_px1] <- NA
     data_mar$x2[mis_mar_px2] <- NA
     data_mar$x3[mis_mar_px3] <- NA
     data_mar$x4[mis_mar_px4] <- NA
     #Muster mal ansehen
     #Anteile überprüfen, ob 0.3 hinkommt.
-    summary(data_mar$x)
-    summary(data_orig$x)
+    summary(data_mar$y)
+    summary(data_orig$y)
     
     #Hr. Meinfelders Muster
     data_my <- data_orig
@@ -115,11 +115,11 @@ for (i in 1:20){
     #10% der Daten als CC
     #Gleiche große Anzahl an Missings in den Variablen, nicht realisisch aber ist es problematisch?
     #Funktioniert das so?! Ansonsten wie in Zeilen 102-106 anpassen
-    is.na(data_my$x[1:180]) <- T
-    is.na(data_my$X1[181:360]) <- T
-    is.na(data_my$X2[361:540]) <- T
-    is.na(data_my$X3[541:720]) <- T
-    is.na(data_my$X4[721:900]) <- T
+    is.na(data_my$y[1:180]) <- T
+    is.na(data_my$x1[181:360]) <- T
+    is.na(data_my$x2[361:540]) <- T
+    is.na(data_my$x3[541:720]) <- T
+    is.na(data_my$x4[721:900]) <- T
     
     # Imputation
     
@@ -194,7 +194,7 @@ print(as.data.frame(t(lapply(R_mean_50,function(x) x[which(x>1.1)]))))
 # MNAR 
 data_mnar <- data_orig
 z_miss_mnar_p <-
-  0.5 + 1 * X1 - 0.7 * X2 - 5 * y + rnorm(n, 0, 3)
+  0.5 + 1 * x1 - 0.7 * x2 - 5 * y + rnorm(n, 0, 3)
 mis_mnar_p <- z_miss_mnar_p < quantile(z_miss_mnar_p, 0.1)
 data_mnar$y[mis_mnar_p] <- NA
 summary(data_mnar$y)
