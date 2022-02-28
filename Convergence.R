@@ -1,4 +1,3 @@
-
 ## Convergence of chained equation algorithms
 
 rm(list=ls())
@@ -15,22 +14,28 @@ set.seed(1)
 #Listen für Schätzer
 R_mean_30 = list(len=100)
 R_mean_70 = list(len=100)
-R_Mean_my = list(len=100)
+R_mean_mar_30 = list(len=100)
+R_mean_mar_70 = list(len=100)
+R_mean_my = list(len=100)
 R_var_30 = list(len=100)
 R_var_70 = list(len=100)
+R_var_mar_30 = list(len=100)
+R_var_mar_70 = list(len=100)
 R_var_my = list(len=100)
 R_Rsq_30 = list(len=100)
 R_Rsq_70 = list(len=100)
+R_Rsq_mar_30 = list(len=100)
+R_Rsq_mar_70 = list(len=100)
 R_Rsq_my = list(len=100)
 
 # Data generation
 
-for (i in 1:20){
+for (i in 1:10){
   
   n <- 1000
   number_variables <- 6
   mu <- runif(number_variables, -5, 10)
-  v <- rWishart(6, 6, matrix(0.5, number_variables, number_variables)) # not sure what to do here
+  v <- runif(number_variables, 0.1, 15)
   
   y <- rnorm(n, mu[1], v[1])
   X1 <- 18 - 0.7 * y + rnorm(n, mu[2], v[2])
@@ -41,16 +46,15 @@ for (i in 1:20){
   data_orig <- data.frame(y, X1, X2, X3, X4, X5)
   
   ## original values
-  (means_orig <- apply(data_orig, 2, FUN = mean))
-  (vars_orig <- apply(data_orig, 2, FUN = var))
-  (cov_orig <- cov(data_orig))
-  (cor_orig <- cor(data_orig))
+  #(means_orig <- apply(data_orig, 2, FUN = mean))
+  #(vars_orig <- apply(data_orig, 2, FUN = var))
+  #(cov_orig <- cov(data_orig))
+  #(cor_orig <- cor(data_orig))
   
   # create missing values
   
   ## mcar
-  for (p_miss in c(0.3, 0.7)){
-    percent_miss <- p_miss
+  for (percent_miss in c(0.3, 0.7)){
     data_mcar <- data_orig
     
     mcar_values1 <- sample(nrow(data_orig), round(percent_miss * n))
@@ -79,25 +83,24 @@ for (i in 1:20){
     #marginplot(data_mcar[, c("X1", "X2")])
     
     ## mar
-    data_mar <- data_orig
     
     #remove the lowest quantile
     data_mar <- data_orig
     z_miss_mar_py <- 0.5 + 2 * X1 - 0.7 * X2 + 0.4 * X3 - 0.8 * X4 + 0.1 * X5 + rnorm(n, 0, 3)
-    mis_mar_py <- z_miss_mar_py < quantile(z_miss_mar_py, p_miss)
+    mis_mar_py <- z_miss_mar_py < quantile(z_miss_mar_py, percent_miss)
     
     #für alle Variablen außer x5 durchführen
     z_miss_mar_pX1 <- 0.3 + 2.5 * y - 0.5 * X2 + 0.6 * X3 - 0.9 * X4 + 0.2 * X5 + rnorm(n, 0, 3)
-    mis_mar_pX1 <- z_miss_mar_pX1 < quantile(z_miss_mar_pX1, p_miss)
+    mis_mar_pX1 <- z_miss_mar_pX1 < quantile(z_miss_mar_pX1, percent_miss)
 
     z_miss_mar_pX2 <- 1.5 + 1.2 * y - 0.5 * X1 + 0.7 * X3 - 0.2 * X4 + 0.7 * X5 + rnorm(n, 0, 3)
-    mis_mar_pX2 <- z_miss_mar_pX2 < quantile(z_miss_mar_pX2, p_miss)
+    mis_mar_pX2 <- z_miss_mar_pX2 < quantile(z_miss_mar_pX2, percent_miss)
     
     z_miss_mar_pX3 <- 0.7 + 0.2 * y - 0.8 * X1 + 0.3 * X2 + 0.1 * X4 + 0.5 * X5 + rnorm(n, 0, 3)
-    mis_mar_pX3 <- z_miss_mar_pX3 < quantile(z_miss_mar_pX3, p_miss)
+    mis_mar_pX3 <- z_miss_mar_pX3 < quantile(z_miss_mar_pX3, percent_miss)
     
     z_miss_mar_pX4 <- 0.4 + 0.9 * y + 0.6 * X1 + 0.7 * X2 - 0.9 * X3 + 0.3 * X5 + rnorm(n, 0, 3)
-    mis_mar_pX4 <- z_miss_mar_pX4 < quantile(z_miss_mar_pX4, p_miss)
+    mis_mar_pX4 <- z_miss_mar_pX4 < quantile(z_miss_mar_pX4, percent_miss)
     
     #NA setzen der Beobachtungen
     data_mar$y[mis_mar_py] <- NA
@@ -109,18 +112,6 @@ for (i in 1:20){
     #Anteile überprüfen, ob 0.3 hinkommt.
     summary(data_mar$y)
     summary(data_orig$y)
-    
-    #Hr. Meinfelders Muster
-    data_my <- data_orig
-    #Da die Daten auf Zufallszügen basieren, ist hier kein richtiges Sampling notwendig
-    #10% der Daten als CC
-    #Gleiche große Anzahl an Missings in den Variablen, nicht realisisch aber ist es problematisch?
-    #Funktioniert das so? Ansonsten wie in Zeilen 102-106 anpassen
-    is.na(data_my$y[1:180]) <- T
-    is.na(data_my$X1[181:360]) <- T
-    is.na(data_my$X2[361:540]) <- T
-    is.na(data_my$X3[541:720]) <- T
-    is.na(data_my$X4[721:900]) <- T
     
     
     # Imputation
@@ -152,76 +143,67 @@ for (i in 1:20){
     #vars_mar <- apply(mice_mar %>% complete(), 2, FUN = var)
     #cov_mar <- mice_mar %>% complete() %>% cov()
     #cor_mar <- mice_mar %>% complete() %>% cor(., use = "pairwise.complete.obs")
-    
-    #mice "my"
-    mice_my <- mice(data_my, maxit=5)
-    summary(mice_my)
-    
-    #means_my <- mice_my %>% complete() %>% colMeans()
-    #vars_my <- apply(mice_my %>% complete(), 2, FUN = var)
-    #cov_my <- mice_my %>% complete() %>% cov()
-    #cor_my <- mice_my %>% complete() %>% cor(., use = "pairwise.complete.obs")
-    
+
     # Rhat
     #aktuell werden alle Variablen übertragen, soll das so oder macht das nicht gerade die Probleme?
-    if (p_miss == 0.3){
+    if (percent_miss == 0.3){
       R_mean_30[i] = Rhat.mice(mice_mcar)[3]
       R_var_30[i] = Rhat.mice(mice_mcar)[4]
     }
-    if (p_miss == 0.7){
+    if (percent_miss == 0.7){
       R_mean_70[i] = Rhat.mice(mice_mcar)[3]
       R_var_70[i] = Rhat.mice(mice_mcar)[4]
     }
-    if (p_miss == 0.3){
-      R_mean_30[i] = Rhat.mice(mice_mar)[3]
-      R_var_30[i] = Rhat.mice(mice_mar)[4]
+    if (percent_miss == 0.3){
+      R_mean_mar_30[i] = Rhat.mice(mice_mar)[3]
+      R_var_mar_30[i] = Rhat.mice(mice_mar)[4]
     }
-    if (p_miss == 0.7){
-      R_mean_70[i] = Rhat.mice(mice_mar)[3]
-      R_var_70[i] = Rhat.mice(mice_mar)[4]
+    if (percent_miss == 0.7){
+      R_mean_mar_70[i] = Rhat.mice(mice_mar)[3]
+      R_var_mar_70[i] = Rhat.mice(mice_mar)[4]
     }
     
   }
-  R_mean[i] = Rhat.mice(mice_my)[3]
-  R_var[i] = Rhat.mice(mice_my)[4]
+  #Hr. Meinfelders Muster
+  data_my <- data_orig
+  #Da die Daten auf Zufallszügen basieren, ist hier kein richtiges Sampling notwendig
+  #10% der Daten als CC
+  #Gleiche große Anzahl an Missings in den Variablen, nicht realisisch aber ist es problematisch?
+  #Funktioniert das so? Ansonsten wie in Zeilen 102-106 anpassen
+  is.na(data_my$y[1:540]) <- T
+  is.na(data_my$X1[1:540]) <- T
+  is.na(data_my$X2[1:540]) <- T
+  is.na(data_my$X3[541:900]) <- T
+  is.na(data_my$X4[541:900]) <- T
+  
+  #mice "my"
+  mice_my <- mice(data_my, maxit=5)
+  summary(mice_my)
+  
+  R_mean_my[i] = Rhat.mice(mice_my)[3]
+  R_var_my[i] = Rhat.mice(mice_my)[4]
 }
 
 # how many means have converged (6 variables x 100 iterations) 
 # i have changed the number of iterations for computation time so it isnt at 100 yet
-lapply(R_mean_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length()
-lapply(R_mean_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length()
+(lapply(R_mean_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+#Anteil an konvergierten Werten
+(lapply(R_mean_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
 # how many variances have converges (6 variables x 100 iterations)
-lapply(R_var_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length()
-lapply(R_var_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length()
+(lapply(R_var_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_var_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
 #show the values that are under 1.1
 print(as.data.frame(t(lapply(R_mean_30,function(x) x[which(x<1.1)]))))
 
+###MAR konvergierte Anteile
+(lapply(R_mean_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_mean_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_var_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_var_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
-###MNAR ist nicht relevant, oder? Kann somit entfernt werden?! Sowie das Swiss Cheese von Paul?
-# MNAR 
-data_mnar <- data_orig
-z_miss_mnar_p <-
-  0.5 + 1 * X1 - 0.7 * X2 - 5 * y + rnorm(n, 0, 3)
-mis_mnar_p <- z_miss_mnar_p < quantile(z_miss_mnar_p, 0.1)
-data_mnar$y[mis_mnar_p] <- NA
-summary(data_mnar$y)
-summary(data_orig$y)
+###Hr. Meinfelders Muster konvergierte Anteile
+(lapply(R_mean_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_var_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
-
-
-
-
-
-# SWISS CHEESE PATTERN VON PAUL:
-x_df <- x_df_org
-
-mis_x4 <- rbinom(n, 1, 0.2) %>% as.logical()
-mis_x5 <- rbinom(n, 1, 0.4) %>% as.logical()
-mis_x6 <- rbinom(n, 1, 0.6) %>% as.logical()
-
-x_df[cbind(matrix(rep(FALSE, n * 3), n, 3), mis_x4, mis_x5, mis_x6)] <-
-  NA
-
-aggr(x_df)
