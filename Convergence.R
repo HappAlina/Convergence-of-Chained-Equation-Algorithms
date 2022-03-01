@@ -2,7 +2,7 @@
 
 rm(list=ls())
 
-
+library(ggplot2)
 library(mice)
 library(VIM)
 library(dplyr)
@@ -128,7 +128,7 @@ for (i in 1:2){
     #für alle Variablen außer x5 durchführen
     z_miss_mar_pX1 <- 0.3 + 2.5 * y - 0.5 * X2 + 0.6 * X3 - 0.9 * X4 + 0.2 * X5 + rnorm(n, 0, 3)
     mis_mar_pX1 <- z_miss_mar_pX1 < quantile(z_miss_mar_pX1, percent_miss)
-
+    
     z_miss_mar_pX2 <- 1.5 + 1.2 * y - 0.5 * X1 + 0.7 * X3 - 0.2 * X4 + 0.7 * X5 + rnorm(n, 0, 3)
     mis_mar_pX2 <- z_miss_mar_pX2 < quantile(z_miss_mar_pX2, percent_miss)
     
@@ -184,8 +184,8 @@ for (i in 1:2){
     ##########################################################################
     ####################### Rhat for R² ######################################
     for (impute_data in c(data_mcar, data_mar)){
-
-    
+      
+      
       # for the y variable as depvar
       for (iter in 1:5){
         mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
@@ -250,7 +250,7 @@ for (i in 1:2){
         }
       }
       rhat_sq[5] <- Rhat1(mat1)
-  
+      
       # Rhat
       if (percent_miss == 0.3){
         R_mean_30[i] = Rhat.mice(mice_mcar)[3]
@@ -303,66 +303,66 @@ for (i in 1:2){
     models <- lapply(1:mice_iter$m, function(m){
       lm(y ~ .,
          data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-
+    
     for (m in 1:5){
       mat1[iter, m] <- summary(models[[m]])$r.squared
     }
   }
   rhat_sq[1] <- Rhat1(mat1)
-
+  
   # for variable x1 as depvar
   for (iter in 1:5){
     mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
     models <- lapply(1:mice_iter$m, function(m){
       lm(X1 ~ .,
          data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-
+    
     for (m in 1:5){
       mat1[iter, m] <- summary(models[[m]])$r.squared
     }
   }
   rhat_sq[2] <- Rhat1(mat1)
-
+  
   # for variable x2 as depvar
   for (iter in 1:5){
     mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
     models <- lapply(1:mice_iter$m, function(m){
       lm(X2 ~ .,
          data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-
+    
     for (m in 1:5){
       mat1[iter, m] <- summary(models[[m]])$r.squared
     }
   }
   rhat_sq[3] <- Rhat1(mat1)
-
+  
   # for variable x3 as depvar
   for (iter in 1:5){
     mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
     models <- lapply(1:mice_iter$m, function(m){
       lm(X3 ~ .,
          data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-
+    
     for (m in 1:5){
       mat1[iter, m] <- summary(models[[m]])$r.squared
     }
   }
   rhat_sq[4] <- Rhat1(mat1)
-
+  
   # for variable x4 as depvar
   for (iter in 1:5){
     mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
     models <- lapply(1:mice_iter$m, function(m){
       lm(X4 ~ .,
          data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-
+    
     for (m in 1:5){
       mat1[iter, m] <- summary(models[[m]])$r.squared
     }
   }
   rhat_sq[5] <- Rhat1(mat1)
   R_Rsq_my[[i]] <-  rhat_sq
-
+  
   
 }
 
@@ -373,12 +373,12 @@ for (i in 1:2){
 # 5 = the 5 variables that have missing values 
 
 #Anteil an konvergierten Werten
-(lapply(R_mean_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_mean_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_var_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_var_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_Rsq_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_Rsq_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_mean_mcar_30 <- (lapply(R_mean_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_mean_mcar_70 <- (lapply(R_mean_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_var_mcar_30 <- (lapply(R_var_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_var_mcar_70 <- (lapply(R_var_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_Rsq_mcar_30 <- (lapply(R_Rsq_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_Rsq_mcar_70 <- (lapply(R_Rsq_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
 # how many variances have converges (6 variables x 100 iterations)
 
@@ -387,14 +387,29 @@ for (i in 1:2){
 print(as.data.frame(t(lapply(R_mean_30,function(x) x[which(x<1.1)]))))
 
 ###MAR konvergierte Anteile
-(lapply(R_mean_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_mean_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_var_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_var_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_Rsq_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_Rsq_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_mean_mar_30 <- (lapply(R_mean_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_mean_mar_70 <-(lapply(R_mean_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_var_mar_30 <-(lapply(R_var_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_var_mar_70 <-(lapply(R_var_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_Rsq_mar_30 <-(lapply(R_Rsq_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_Rsq_mar_70 <-(lapply(R_Rsq_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
 ###Hr. Meinfelders Muster konvergierte Anteile
-(lapply(R_mean_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_var_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-(lapply(R_Rsq_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_mean_my <- (lapply(R_mean_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_var_my <- (lapply(R_var_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+con_Rsq_my <- (lapply(R_Rsq_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+
+###Collect data for sample
+missmech <- c(rep("MCAR30", 3), rep("MCAR70", 3), rep("MAR30", 3), rep("MAR70", 3), rep("MY_PATTERN", 3) )
+est <- rep(c("Mean" , "Variance" , "R^2"), 5)
+prop <- c(con_mean_mcar_30, con_var_mcar_30, con_Rsq_mcar_30, con_mean_mcar_70, con_var_mcar_70, con_Rsq_mcar_70, con_mean_mar_30, con_var_mar_30, con_Rsq_mar_30, con_mean_mar_70, con_var_mar_70, con_Rsq_mar_70, con_mean_my, con_var_my, con_Rsq_my)
+plotdata <- data.frame(missmech, est, prop)
+
+# Plot
+ggplot(plotdata, aes(fill=est, y=prop, x=missmech)) + 
+  geom_bar(position="dodge", stat="identity") +
+  xlab("Missing Mechanisms") +
+  ylab("Proportion of Converged Estimators") +
+  scale_fill_discrete(name= "Estimators") +
+  ggtitle("Proportions of Converged Estimators by Pattern") +
+  theme_bw()
