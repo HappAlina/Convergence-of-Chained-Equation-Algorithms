@@ -9,10 +9,9 @@ library(dplyr)
 library(mi)
 library(miceadds)
 
-#Reproduzierbarkeit
-set.seed(1)
-#Listen für Schätzer
-R_mean_30 = list(len=100)
+
+#Listen für Rhat-Schätzer
+R_mean_30 = list(len=100) #mcar
 R_mean_70 = list(len=100)
 R_mean_mar_30 = list(len=100)
 R_mean_mar_70 = list(len=100)
@@ -28,9 +27,46 @@ R_Rsq_mar_30 = list(len=100)
 R_Rsq_mar_70 = list(len=100)
 R_Rsq_my = list(len=100)
 
+# The following function belongs to the source code of the Rhat.mice function of the 
+# miceadds package and will be used later on in our code. See:
+# https://rdrr.io/cran/miceadds/src/R/Rhat1.R
+# https://rdrr.io/cran/miceadds/src/R/Rhat.mice.R
+# We will later implement a Rhat for the R-squared to check if the variables'
+# interdependency converged. Therefore we cannot use the Rhat.mice function,
+# which can only calculate Rhats for mean and variance
+# The function takes a matrix with the iterations (n) as rows and the multiple 
+# imputations (m) as columns 
+
+Rhat1 <- function(mat)
+{
+  m <- ncol(mat)
+  n <- nrow(mat)
+  b <- apply(mat,2,mean)
+  B <- sum((b-mean(mat))^2)*n/(m-1)
+  w <- apply(mat,2, stats::var)
+  W <- mean(w)
+  s2hat <- (n-1)/n*W + B/n
+  Vhat <- s2hat + B/m/n
+  covWB <- n /m * (stats::cov(w,b^2)-2*mean(b)*stats::cov(w,b))
+  varV <- (n-1)^2 / n^2 * stats::var(w)/m +
+    (m+1)^2 / m^2 / n^2 * 2*B^2/(m-1) +
+    2 * (m-1)*(n-1)/m/n^2 * covWB
+  df <- 2 * Vhat^2 / varV
+  R <- sqrt((df+3) * Vhat / (df+1) / W)
+  return(R)
+}
+
+# The matrix that will later be put into the function Rhat1 will be called mat1
+mat1 <- matrix(nrow=5, ncol=5)
+rhat_sq <- vector(length=5) # temporary saved value of rhat for R²
+
+
+#Reproduzierbarkeit
+set.seed(1)
+
 # Data generation
 
-for (i in 1:10){
+for (i in 1:2){
   
   n <- 1000
   number_variables <- 6
@@ -110,8 +146,8 @@ for (i in 1:10){
     data_mar$X4[mis_mar_pX4] <- NA
     #Muster mal ansehen
     #Anteile überprüfen, ob 0.3 hinkommt.
-    summary(data_mar$y)
-    summary(data_orig$y)
+    #summary(data_mar$y)
+    #summary(data_orig$y)
     
     
     # Imputation
@@ -143,26 +179,100 @@ for (i in 1:10){
     #vars_mar <- apply(mice_mar %>% complete(), 2, FUN = var)
     #cov_mar <- mice_mar %>% complete() %>% cov()
     #cor_mar <- mice_mar %>% complete() %>% cor(., use = "pairwise.complete.obs")
-
-    # Rhat
-    #aktuell werden alle Variablen übertragen, soll das so oder macht das nicht gerade die Probleme?
-    if (percent_miss == 0.3){
-      R_mean_30[i] = Rhat.mice(mice_mcar)[3]
-      R_var_30[i] = Rhat.mice(mice_mcar)[4]
-    }
-    if (percent_miss == 0.7){
-      R_mean_70[i] = Rhat.mice(mice_mcar)[3]
-      R_var_70[i] = Rhat.mice(mice_mcar)[4]
-    }
-    if (percent_miss == 0.3){
-      R_mean_mar_30[i] = Rhat.mice(mice_mar)[3]
-      R_var_mar_30[i] = Rhat.mice(mice_mar)[4]
-    }
-    if (percent_miss == 0.7){
-      R_mean_mar_70[i] = Rhat.mice(mice_mar)[3]
-      R_var_mar_70[i] = Rhat.mice(mice_mar)[4]
-    }
     
+    
+    ##########################################################################
+    ####################### Rhat for R² ######################################
+    for (impute_data in c(data_mcar, data_mar)){
+
+    
+      # for the y variable as depvar
+      for (iter in 1:5){
+        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
+        models <- lapply(1:mice_iter$m, function(m){
+          lm(y ~ .,
+             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+        
+        for (m in 1:5){
+          mat1[iter, m] <- summary(models[[m]])$r.squared
+        }
+      }
+      rhat_sq[1] <- Rhat1(mat1)
+      
+      # for variable x1 as depvar
+      for (iter in 1:5){
+        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
+        models <- lapply(1:mice_iter$m, function(m){
+          lm(X1 ~ .,
+             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+        
+        for (m in 1:5){
+          mat1[iter, m] <- summary(models[[m]])$r.squared
+        }
+      }
+      rhat_sq[2] <- Rhat1(mat1)
+      
+      # for variable x2 as depvar
+      for (iter in 1:5){
+        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
+        models <- lapply(1:mice_iter$m, function(m){
+          lm(X2 ~ .,
+             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+        
+        for (m in 1:5){
+          mat1[iter, m] <- summary(models[[m]])$r.squared
+        }
+      }
+      rhat_sq[3] <- Rhat1(mat1)
+      
+      # for variable x3 as depvar
+      for (iter in 1:5){
+        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
+        models <- lapply(1:mice_iter$m, function(m){
+          lm(X3 ~ .,
+             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+        
+        for (m in 1:5){
+          mat1[iter, m] <- summary(models[[m]])$r.squared
+        }
+      }
+      rhat_sq[4] <- Rhat1(mat1)  
+      
+      # for variable x4 as depvar
+      for (iter in 1:5){
+        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
+        models <- lapply(1:mice_iter$m, function(m){
+          lm(X4 ~ .,
+             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+        
+        for (m in 1:5){
+          mat1[iter, m] <- summary(models[[m]])$r.squared
+        }
+      }
+      rhat_sq[5] <- Rhat1(mat1)
+  
+      # Rhat
+      if (percent_miss == 0.3){
+        R_mean_30[i] = Rhat.mice(mice_mcar)[3]
+        R_var_30[i] = Rhat.mice(mice_mcar)[4]
+        R_Rsq_30[[i]] = rhat_sq
+      }
+      if (percent_miss == 0.7){
+        R_mean_70[i] = Rhat.mice(mice_mcar)[3]
+        R_var_70[i] = Rhat.mice(mice_mcar)[4]
+        R_Rsq_70[[i]] = rhat_sq
+      }
+      if (percent_miss == 0.3){
+        R_mean_mar_30[i] = Rhat.mice(mice_mar)[3]
+        R_var_mar_30[i] = Rhat.mice(mice_mar)[4]
+        R_Rsq_mar_30[[i]] = rhat_sq
+      }
+      if (percent_miss == 0.7){
+        R_mean_mar_70[i] = Rhat.mice(mice_mar)[3]
+        R_var_mar_70[i] = Rhat.mice(mice_mar)[4]
+        R_Rsq_mar_70[[i]] = rhat_sq
+      }
+    }
   }
   #Hr. Meinfelders Muster
   data_my <- data_orig
@@ -180,19 +290,98 @@ for (i in 1:10){
   mice_my <- mice(data_my, maxit=5)
   summary(mice_my)
   
-  R_mean_my[i] = Rhat.mice(mice_my)[3]
-  R_var_my[i] = Rhat.mice(mice_my)[4]
+  R_mean_my[i] <-  Rhat.mice(mice_my)[3]
+  R_var_my[i] <-  Rhat.mice(mice_my)[4]
+  
+  
+  
+  #############################################################################
+  ############################# Rhat of R² ####################################
+  # for the y variable as depvar
+  for (iter in 1:5){
+    mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
+    models <- lapply(1:mice_iter$m, function(m){
+      lm(y ~ .,
+         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+
+    for (m in 1:5){
+      mat1[iter, m] <- summary(models[[m]])$r.squared
+    }
+  }
+  rhat_sq[1] <- Rhat1(mat1)
+
+  # for variable x1 as depvar
+  for (iter in 1:5){
+    mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
+    models <- lapply(1:mice_iter$m, function(m){
+      lm(X1 ~ .,
+         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+
+    for (m in 1:5){
+      mat1[iter, m] <- summary(models[[m]])$r.squared
+    }
+  }
+  rhat_sq[2] <- Rhat1(mat1)
+
+  # for variable x2 as depvar
+  for (iter in 1:5){
+    mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
+    models <- lapply(1:mice_iter$m, function(m){
+      lm(X2 ~ .,
+         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+
+    for (m in 1:5){
+      mat1[iter, m] <- summary(models[[m]])$r.squared
+    }
+  }
+  rhat_sq[3] <- Rhat1(mat1)
+
+  # for variable x3 as depvar
+  for (iter in 1:5){
+    mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
+    models <- lapply(1:mice_iter$m, function(m){
+      lm(X3 ~ .,
+         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+
+    for (m in 1:5){
+      mat1[iter, m] <- summary(models[[m]])$r.squared
+    }
+  }
+  rhat_sq[4] <- Rhat1(mat1)
+
+  # for variable x4 as depvar
+  for (iter in 1:5){
+    mice_iter <- mice(data_my, maxit=iter) # simulate the first iteration
+    models <- lapply(1:mice_iter$m, function(m){
+      lm(X4 ~ .,
+         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
+
+    for (m in 1:5){
+      mat1[iter, m] <- summary(models[[m]])$r.squared
+    }
+  }
+  rhat_sq[5] <- Rhat1(mat1)
+  R_Rsq_my[[i]] <-  rhat_sq
+
+  
 }
 
-# how many means have converged (6 variables x 100 iterations) 
-# i have changed the number of iterations for computation time so it isnt at 100 yet
-(lapply(R_mean_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-#Anteil an konvergierten Werten
-(lapply(R_mean_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+# This returns the share of the variables that have converged (have an Rhat<1.1)
+# It is calculated by taking the absolute number of converged variables and 
+# dividing it by the total number of tested variables i*5
+# i = the amount of loops/ the amount of generated datasets that are tested
+# 5 = the 5 variables that have missing values 
 
-# how many variances have converges (6 variables x 100 iterations)
+#Anteil an konvergierten Werten
+(lapply(R_mean_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_mean_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 (lapply(R_var_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 (lapply(R_var_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_Rsq_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_Rsq_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+
+# how many variances have converges (6 variables x 100 iterations)
+
 
 #show the values that are under 1.1
 print(as.data.frame(t(lapply(R_mean_30,function(x) x[which(x<1.1)]))))
@@ -202,8 +391,10 @@ print(as.data.frame(t(lapply(R_mean_30,function(x) x[which(x<1.1)]))))
 (lapply(R_mean_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 (lapply(R_var_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 (lapply(R_var_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_Rsq_mar_30,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
+(lapply(R_Rsq_mar_70,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 
 ###Hr. Meinfelders Muster konvergierte Anteile
 (lapply(R_mean_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
 (lapply(R_var_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
-
+(lapply(R_Rsq_my,function(x) x[which(x<1.1)]) %>%  unlist() %>% length())/(i*5)
