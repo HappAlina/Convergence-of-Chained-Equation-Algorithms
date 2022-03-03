@@ -70,7 +70,7 @@ set.seed(1)
 
 ##### Data generation #####
 
-for (i in 1:2){
+for (i in 1:100){
   
   n <- 1000
   number_variables <- 6
@@ -137,10 +137,10 @@ for (i in 1:2){
     
     #we use the mice package
     #Imputation for MCAR
-    mice_mcar <- mice(data_mcar, maxit=5)
+    mice_mcar <- mice(data_mcar, maxit=5, printFlag = F)
    
     #Imputation for MAR
-    mice_mar <- mice(data_mar, maxit=5)
+    mice_mar <- mice(data_mar, maxit=5, printFlag = F)
     
     
     ##### Rhat for R² #####
@@ -158,7 +158,7 @@ for (i in 1:2){
     for (impute_data in c(data_mcar, data_mar)){
       
       for (iter in 1:5){
-        mice_iter <- mice(data_mcar, maxit=iter) # simulate the 5 iterations
+        mice_iter <- mice(data_mcar, maxit=iter, printFlag = F) # simulate the 5 iterations
         modely <- lapply(1:mice_iter$m, function(m){ # do for all 5 m
           lm(y ~ .,data = mice::complete(mice_iter, action = m))})
         modelX1 <- lapply(1:mice_iter$m, function(m){
@@ -231,7 +231,7 @@ for (i in 1:2){
   is.na(data_flex$X4[541:900]) <- T
   
   #Imputation for Flex Pattern
-  mice_flex <- mice(data_flex, maxit=5)
+  mice_flex <- mice(data_flex, maxit=5, printFlag = F)
   
   R_mean_flex[i] <-  Rhat.mice(mice_flex)[3]
   R_var_flex[i] <-  Rhat.mice(mice_flex)[4]
@@ -241,7 +241,7 @@ for (i in 1:2){
   #because this pattern does not differentiate between 30 % and 70 %
   
   for (iter in 1:5){
-    mice_iter <- mice(data_mcar, maxit=iter) # simulate the 5 iterations
+    mice_iter <- mice(data_mcar, maxit=iter, printFlag = F) # simulate the 5 iterations
     modely <- lapply(1:mice_iter$m, function(m){ # do for all 5 m
       lm(y ~ .,data = mice::complete(mice_iter, action = m))})
     modelX1 <- lapply(1:mice_iter$m, function(m){
@@ -267,6 +267,8 @@ for (i in 1:2){
   rhat_sq[5] <- Rhat1(matX4)
   
   R_Rsq_flex[[i]] <-  rhat_sq
+  
+  print(i)
   
 }
 
