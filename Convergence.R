@@ -56,8 +56,12 @@ Rhat1 <- function(mat)
   return(R)
 }
 
-# The matrix that will later be put into the function Rhat1 will be called mat1
-mat1 <- matrix(nrow=5, ncol=5)
+# The matrices that will later be put into the function Rhat1 
+maty <- matrix(nrow=5, ncol=5)
+matX1 <- matrix(nrow=5, ncol=5)
+matX2 <- matrix(nrow=5, ncol=5)
+matX3 <- matrix(nrow=5, ncol=5)
+matX4 <- matrix(nrow=5, ncol=5)
 rhat_sq <- vector(length=5) # temporary saved value of rhat for R²
 
 
@@ -66,7 +70,7 @@ set.seed(1)
 
 ##### Data generation #####
 
-for (i in 1:100){
+for (i in 1:2){
   
   n <- 1000
   number_variables <- 6
@@ -145,79 +149,40 @@ for (i in 1:100){
     #For each iteration the default amount of models (m=5) will be created. 
     #For the 5x5=25 datasets a linear model is calculated and the 
     #corresponding R² is extracted in the sub-loop. 
-    #The result is a 5x5 matrix of R²s (mat1). 
+    #The result is a 5x5 matrix of R²s (maty, matX1...). 
     #Now the function presented in the beginning of the script Rhat1 is used 
     #to get the Rhat-value of this matrix, which is then saved as rhat_sq.
-    #The same loop is created to build a linear model for y, X1, X2, X3 and 
+    #We each build a linear model for y, X1, X2, X3 and 
     #X4 as the dependent variable.
 
     for (impute_data in c(data_mcar, data_mar)){
       
-      
-      # for the y variable as depvar
       for (iter in 1:5){
-        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
-        models <- lapply(1:mice_iter$m, function(m){
-          lm(y ~ .,
-             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-        
+        mice_iter <- mice(data_mcar, maxit=iter) # simulate the 5 iterations
+        modely <- lapply(1:mice_iter$m, function(m){ # do for all 5 m
+          lm(y ~ .,data = mice::complete(mice_iter, action = m))})
+        modelX1 <- lapply(1:mice_iter$m, function(m){
+          lm(X1 ~ .,data = mice::complete(mice_iter, action = m))})
+        modelX2 <- lapply(1:mice_iter$m, function(m){
+          lm(X2 ~ .,data = mice::complete(mice_iter, action = m))})
+        modelX3 <- lapply(1:mice_iter$m, function(m){
+          lm(X3 ~ .,data = mice::complete(mice_iter, action = m))})
+        modelX4 <- lapply(1:mice_iter$m, function(m){
+          lm(X4 ~ .,data = mice::complete(mice_iter, action = m))})
         for (m in 1:5){
-          mat1[iter, m] <- summary(models[[m]])$r.squared
+          maty[iter, m] <- summary(modely[[m]])$r.squared
+          matX1[iter, m] <- summary(modelX1[[m]])$r.squared
+          matX2[iter, m] <- summary(modelX2[[m]])$r.squared
+          matX3[iter, m] <- summary(modelX3[[m]])$r.squared
+          matX4[iter, m] <- summary(modelX4[[m]])$r.squared
         }
       }
-      rhat_sq[1] <- Rhat1(mat1)
+      rhat_sq[1] <- Rhat1(maty)
+      rhat_sq[2] <- Rhat1(matX1)
+      rhat_sq[3] <- Rhat1(matX2)
+      rhat_sq[4] <- Rhat1(matX3)
+      rhat_sq[5] <- Rhat1(matX4)
       
-      # for variable x1 as depvar
-      for (iter in 1:5){
-        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
-        models <- lapply(1:mice_iter$m, function(m){
-          lm(X1 ~ .,
-             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-        
-        for (m in 1:5){
-          mat1[iter, m] <- summary(models[[m]])$r.squared
-        }
-      }
-      rhat_sq[2] <- Rhat1(mat1)
-      
-      # for variable x2 as depvar
-      for (iter in 1:5){
-        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
-        models <- lapply(1:mice_iter$m, function(m){
-          lm(X2 ~ .,
-             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-        
-        for (m in 1:5){
-          mat1[iter, m] <- summary(models[[m]])$r.squared
-        }
-      }
-      rhat_sq[3] <- Rhat1(mat1)
-      
-      # for variable x3 as depvar
-      for (iter in 1:5){
-        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
-        models <- lapply(1:mice_iter$m, function(m){
-          lm(X3 ~ .,
-             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-        
-        for (m in 1:5){
-          mat1[iter, m] <- summary(models[[m]])$r.squared
-        }
-      }
-      rhat_sq[4] <- Rhat1(mat1)  
-      
-      # for variable x4 as depvar
-      for (iter in 1:5){
-        mice_iter <- mice(data_mcar, maxit=iter) # simulate the first iteration
-        models <- lapply(1:mice_iter$m, function(m){
-          lm(X4 ~ .,
-             data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-        
-        for (m in 1:5){
-          mat1[iter, m] <- summary(models[[m]])$r.squared
-        }
-      }
-      rhat_sq[5] <- Rhat1(mat1)
       
       ##### Rhat for mean and variance from package miceadds #####
       if (percent_miss == 0.3){
@@ -275,70 +240,32 @@ for (i in 1:100){
   #The same code as for MCAR and MAR is used but we have to repeat it here
   #because this pattern does not differentiate between 30 % and 70 %
   
-  # for the y variable as depvar
   for (iter in 1:5){
-    mice_iter <- mice(data_flex, maxit=iter) # simulate the first iteration
-    models <- lapply(1:mice_iter$m, function(m){
-      lm(y ~ .,
-         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-    
+    mice_iter <- mice(data_mcar, maxit=iter) # simulate the 5 iterations
+    modely <- lapply(1:mice_iter$m, function(m){ # do for all 5 m
+      lm(y ~ .,data = mice::complete(mice_iter, action = m))})
+    modelX1 <- lapply(1:mice_iter$m, function(m){
+      lm(X1 ~ .,data = mice::complete(mice_iter, action = m))})
+    modelX2 <- lapply(1:mice_iter$m, function(m){
+      lm(X2 ~ .,data = mice::complete(mice_iter, action = m))})
+    modelX3 <- lapply(1:mice_iter$m, function(m){
+      lm(X3 ~ .,data = mice::complete(mice_iter, action = m))})
+    modelX4 <- lapply(1:mice_iter$m, function(m){
+      lm(X4 ~ .,data = mice::complete(mice_iter, action = m))})
     for (m in 1:5){
-      mat1[iter, m] <- summary(models[[m]])$r.squared
+      maty[iter, m] <- summary(modely[[m]])$r.squared
+      matX1[iter, m] <- summary(modelX1[[m]])$r.squared
+      matX2[iter, m] <- summary(modelX2[[m]])$r.squared
+      matX3[iter, m] <- summary(modelX3[[m]])$r.squared
+      matX4[iter, m] <- summary(modelX4[[m]])$r.squared
     }
   }
-  rhat_sq[1] <- Rhat1(mat1)
+  rhat_sq[1] <- Rhat1(maty)
+  rhat_sq[2] <- Rhat1(matX1)
+  rhat_sq[3] <- Rhat1(matX2)
+  rhat_sq[4] <- Rhat1(matX3)
+  rhat_sq[5] <- Rhat1(matX4)
   
-  # for variable x1 as depvar
-  for (iter in 1:5){
-    mice_iter <- mice(data_flex, maxit=iter) # simulate the first iteration
-    models <- lapply(1:mice_iter$m, function(m){
-      lm(X1 ~ .,
-         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-    
-    for (m in 1:5){
-      mat1[iter, m] <- summary(models[[m]])$r.squared
-    }
-  }
-  rhat_sq[2] <- Rhat1(mat1)
-  
-  # for variable x2 as depvar
-  for (iter in 1:5){
-    mice_iter <- mice(data_flex, maxit=iter) # simulate the first iteration
-    models <- lapply(1:mice_iter$m, function(m){
-      lm(X2 ~ .,
-         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-    
-    for (m in 1:5){
-      mat1[iter, m] <- summary(models[[m]])$r.squared
-    }
-  }
-  rhat_sq[3] <- Rhat1(mat1)
-  
-  # for variable x3 as depvar
-  for (iter in 1:5){
-    mice_iter <- mice(data_flex, maxit=iter) # simulate the first iteration
-    models <- lapply(1:mice_iter$m, function(m){
-      lm(X3 ~ .,
-         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-    
-    for (m in 1:5){
-      mat1[iter, m] <- summary(models[[m]])$r.squared
-    }
-  }
-  rhat_sq[4] <- Rhat1(mat1)
-  
-  # for variable x4 as depvar
-  for (iter in 1:5){
-    mice_iter <- mice(data_flex, maxit=iter) # simulate the first iteration
-    models <- lapply(1:mice_iter$m, function(m){
-      lm(X4 ~ .,
-         data = mice::complete(mice_iter, action = m))}) # action iterates between the m
-    
-    for (m in 1:5){
-      mat1[iter, m] <- summary(models[[m]])$r.squared
-    }
-  }
-  rhat_sq[5] <- Rhat1(mat1)
   R_Rsq_flex[[i]] <-  rhat_sq
   
 }
